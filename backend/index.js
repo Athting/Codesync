@@ -20,6 +20,15 @@ const toPositiveInt = (value, fallbackValue) => {
     : fallbackValue;
 };
 
+const toBoolean = (value, fallbackValue = false) => {
+  if (typeof value !== "string") {
+    return fallbackValue;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  return ["1", "true", "yes", "on"].includes(normalized);
+};
+
 const executionTimeoutMs = toPositiveInt(
   process.env.EXECUTION_TIMEOUT_MS,
   8000,
@@ -36,8 +45,10 @@ const maxConcurrentExecutions = toPositiveInt(
   2,
 );
 const executeApiKey = process.env.EXECUTE_API_KEY || "";
-const allowUnsandboxedExecution =
-  process.env.ALLOW_UNSANDBOXED_EXECUTION === "true";
+const allowUnsandboxedExecution = toBoolean(
+  process.env.ALLOW_UNSANDBOXED_EXECUTION,
+  false,
+);
 const isProduction = process.env.NODE_ENV === "production";
 let activeExecutionCount = 0;
 
