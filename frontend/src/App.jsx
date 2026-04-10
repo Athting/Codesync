@@ -179,6 +179,16 @@ const App = () => {
       setUsers(activeUsers);
     };
 
+    const handleRoomState = ({ code: roomCode, language: roomLanguage }) => {
+      if (typeof roomCode === "string") {
+        setCode(roomCode);
+      }
+
+      if (typeof roomLanguage === "string") {
+        setLanguage(roomLanguage);
+      }
+    };
+
     const handleCodeUpdate = (newCode) => {
       setCode(newCode);
     };
@@ -193,12 +203,14 @@ const App = () => {
     };
 
     socket.on("userJoined", handleUserJoined);
+    socket.on("roomState", handleRoomState);
     socket.on("codeUpdate", handleCodeUpdate);
     socket.on("userTyping", handleUserTyping);
     socket.on("languageUpdate", handleLanguageUpdate);
 
     return () => {
       socket.off("userJoined", handleUserJoined);
+      socket.off("roomState", handleRoomState);
       socket.off("codeUpdate", handleCodeUpdate);
       socket.off("userTyping", handleUserTyping);
       socket.off("languageUpdate", handleLanguageUpdate);
@@ -228,7 +240,12 @@ const App = () => {
   useEffect(() => {
     const handleConnect = () => {
       if (joined && roomId && userName) {
-        socket.emit("join", { roomId, userName });
+        socket.emit("join", {
+          roomId,
+          userName,
+          initialCode: code,
+          initialLanguage: language,
+        });
       }
     };
 
@@ -237,7 +254,7 @@ const App = () => {
     return () => {
       socket.off("connect", handleConnect);
     };
-  }, [joined, roomId, userName]);
+  }, [joined, roomId, userName, code, language]);
 
   const joinRoom = () => {
     if (roomId && userName) {
@@ -248,7 +265,12 @@ const App = () => {
       );
 
       if (socket.connected) {
-        socket.emit("join", { roomId, userName });
+        socket.emit("join", {
+          roomId,
+          userName,
+          initialCode: code,
+          initialLanguage: language,
+        });
       } else {
         socket.connect();
       }

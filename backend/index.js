@@ -151,6 +151,7 @@ const io = new Server(server, {
 });
 
 const rooms = new Map();
+const roomStates = new Map();
 
 const createMissingRuntimeError = (message) => {
   const error = new Error(message);
@@ -497,6 +498,7 @@ const removeUserFromRoom = ({ roomId, userName }) => {
 
   if (roomUsers.size === 0) {
     rooms.delete(roomId);
+    roomStates.delete(roomId);
     return;
   }
 
@@ -509,7 +511,7 @@ io.on("connection", (socket) => {
   let currentRoom = null;
   let currentUser = null;
 
-  socket.on("join", ({ roomId, userName }) => {
+  socket.on("join", ({ roomId, userName, initialCode = "", initialLanguage = "cpp" }) => {
     if (currentRoom) {
       socket.leave(currentRoom);
       removeUserFromRoom({ roomId: currentRoom, userName: currentUser });
@@ -524,12 +526,24 @@ io.on("connection", (socket) => {
       rooms.set(roomId, new Set());
     }
 
+    if (!roomStates.has(roomId)) {
+      roomStates.set(roomId, {
+        code: initialCode,
+        language: initialLanguage,
+      });
+    }
+
     rooms.get(roomId).add(userName);
 
     io.to(roomId).emit("userJoined", Array.from(rooms.get(currentRoom)));
+    socket.emit("roomState", roomStates.get(roomId));
   });
 
   socket.on("codeChange", ({ roomId, code }) => {
+    if (roomStates.has(roomId)) {
+      roomStates.get(roomId).code = code;
+    }
+
     socket.to(roomId).emit("codeUpdate", code);
   });
 
@@ -549,6 +563,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("languageChange", ({ roomId, language }) => {
+    if (roomStates.has(roomId)) {
+      roomStates.get(roomId).language = language;
+    }
+
     io.to(roomId).emit("languageUpdate", language);
   });
 
